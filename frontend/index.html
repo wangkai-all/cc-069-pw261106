@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品分类沿革工作台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <h1>商品分类沿革工作台</h1>
+      <p class="subtitle">时态分类树 · 双口径销量对照 · 报表版本留档</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <label class="theme-toggle">
+      主题
+      <select id="themeSelect">
+        <option value="auto">跟随系统</option>
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-view="tree" role="tab">沿革树</button>
+  <button class="tab" data-view="point" role="tab">时间点查询</button>
+  <button class="tab" data-view="compare" role="tab">销量双口径</button>
+  <button class="tab" data-view="reports" role="tab">报表版本</button>
+  <button class="tab" data-view="timeline" role="tab">关系时间线</button>
+</nav>
+
+<main>
+  <!-- ============ 视图 1：沿革树（拖拽调整） ============ -->
+  <section id="view-tree" class="view active">
+    <div class="filter-row">
+      <label>查看日期
+        <input type="date" id="treeDate">
+      </label>
+      <button class="btn ghost" id="treeRefresh">刷新</button>
+      <span class="spacer"></span>
+      <button class="btn" id="btnNewCategory">＋ 新建分类</button>
+      <button class="btn" id="btnSplit">拆分分类</button>
+      <button class="btn" id="btnMerge">合并分类</button>
+      <button class="btn ghost" id="btnValidate">校验树完整性</button>
+    </div>
+    <div id="validationBanner" class="banner hidden" role="status"></div>
+    <div class="card">
+      <p class="hint">拖动任意分类卡片到新父级上即可调整（弹窗确认生效日）。
+        已停用/合并节点保留显示并标注徽章；商品数为该日期时点的归属数。</p>
+      <div id="treeCanvas" class="tree-canvas" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ============ 视图 2：时间点查询 ============ -->
+  <section id="view-point" class="view">
+    <div class="filter-row">
+      <label>查询日期
+        <input type="date" id="pointDate" value="2026-03-15">
+      </label>
+      <label>商品
+        <select id="pointProduct"><option value="">全部商品</option></select>
+      </label>
+      <button class="btn" id="pointQuery">查询当时分类</button>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h2>当日归属一览</h2>
+        <div class="table-wrap">
+          <table id="pointTable">
+            <thead><tr><th>SKU</th><th>商品</th><th>当日所属分类</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>商品归属时间线</h2>
+        <p class="hint">选择商品查看完整归属版本（含调整单号与类型）。</p>
+        <div id="productHistory" class="history-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 视图 3：销量双口径 ============ -->
+  <section id="view-compare" class="view">
+    <div class="filter-row">
+      <label>开始 <input type="date" id="cmpFrom" value="2026-01-01"></label>
+      <label>结束 <input type="date" id="cmpTo" value="2026-07-01"></label>
+      <button class="btn" id="cmpRun">对照计算</button>
+      <span class="spacer"></span>
+      <a class="btn ghost" id="cmpExport" href="#">⬇ 下载差异明细 CSV</a>
+    </div>
+    <div class="stat-row" id="cmpStats"></div>
+    <div class="card">
+      <h2>分类销售额：交易时口径 vs 当前口径</h2>
+      <div id="cmpChart" class="chart"></div>
+    </div>
+    <div class="card">
+      <h2>差异明细表（表格视图）</h2>
+      <div class="table-wrap">
+        <table id="cmpTable">
+          <thead><tr>
+            <th>分类</th><th>交易时销量</th><th>当前口径销量</th><th>销量差</th>
+            <th>交易时销售额</th><th>当前口径销售额</th><th>销售额差</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <h3 class="mt">受影响商品</h3>
+      <div class="table-wrap">
+        <table id="cmpDetail">
+          <thead><tr><th>SKU</th><th>商品</th><th>交易时分类</th>
+            <th>当前分类</th><th>销量</th><th>销售额</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 视图 4：报表版本 ============ -->
+  <section id="view-reports" class="view">
+    <div class="filter-row">
+      <button class="btn" id="reportRefresh">刷新</button>
+      <span class="spacer"></span>
+      <label>月份 <input type="month" id="reportMonth" value="2026-06"></label>
+      <label>口径
+        <select id="reportCaliber">
+          <option value="pointwise">交易时（点时态）</option>
+          <option value="current">当前分类</option>
+        </select>
+      </label>
+      <button class="btn" id="reportPublish">发布新版本</button>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h2>报表版本留档</h2>
+        <div id="reportList" class="report-list"></div>
+      </div>
+      <div class="card">
+        <h2>重算作业（增量范围）</h2>
+        <div class="table-wrap">
+          <table id="jobsTable">
+            <thead><tr><th>调整</th><th>月份</th><th>受影响商品</th>
+              <th>状态</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 视图 5：关系时间线 ============ -->
+  <section id="view-timeline" class="view">
+    <div class="filter-row">
+      <label>选择商品
+        <select id="timelineProduct"></select>
+      </label>
+      <span class="spacer"></span>
+      <span class="hint" id="timelineScope"></span>
+    </div>
+    <div class="card">
+      <h2>分类调整事件流</h2>
+      <div id="changeTimeline" class="timeline"></div>
+    </div>
+    <div class="card">
+      <h2>该商品的归属区间</h2>
+      <div id="timelineBars" class="interval-bars"></div>
+    </div>
+  </section>
+</main>
+
+<!-- 通用弹窗 -->
+<div id="modalBackdrop" class="modal-backdrop hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="modalCancel">取消</button>
+      <button class="btn primary" id="modalOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="alert"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
